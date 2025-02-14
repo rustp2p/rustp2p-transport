@@ -1,0 +1,9 @@
+[package]
+name = "rustp2p-transport"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = {version = "1.43",features = ["macros","rt-multi-thread"]}
+rustp2p = "0.1.18"
+tcp_ip = "0.1.6"
