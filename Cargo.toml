@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tokio = {version = "1.43",features = ["macros","rt-multi-thread"]}
+log = "0.4.25"
+tokio = { version = "1.43", features = ["macros", "rt-multi-thread"] }
 rustp2p = "0.1.18"
-tcp_ip = "0.1.6"
+tcp_ip = "0.1.7"
+bytes = "1.10.0"
+pnet_packet = "0.35"
