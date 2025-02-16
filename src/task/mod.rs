@@ -11,7 +11,7 @@ pub async fn start(
     ip_stack_recv: IpStackRecv,
 ) -> io::Result<()> {
     if pipe.writer().pipe_context().load_id().is_none() {
-        return Err(io::Error::new(io::ErrorKind::Other, "not node id"));
+        return Err(io::Error::new(io::ErrorKind::Other, "Node ID must be set"));
     };
     let pipe_writer = pipe.writer().clone();
     tokio::spawn(async move {
