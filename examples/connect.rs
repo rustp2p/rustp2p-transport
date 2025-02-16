@@ -6,7 +6,6 @@ use rustp2p::pipe::PeerNodeAddress;
 use rustp2p::protocol::node_id::GroupCode;
 use std::io;
 use std::net::Ipv4Addr;
-use std::time::Duration;
 use tcp_ip::ip_stack::IpStackConfig;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 
@@ -32,10 +31,10 @@ struct Args {
     #[arg(short = 'P', long, default_value = "23333")]
     port: u16,
 }
-/// Node A: ./connect -- --ip 10.26.0.2 -g 123
-/// Node B: ./connect -- --ip 10.26.0.3 -g 123 -c 10.26.0.2 --peer tcp://127.0.0.1:23333
-///
-///
+
+/// Node A: ./connect --ip 10.26.0.2 -g 123
+/// Node B: ./connect --ip 10.26.0.3 -g 123 -c 10.26.0.2 --peer tcp://127.0.0.1:23333
+/// After a successful connection, entering content on Node B will be displayed on Node A.
 #[tokio::main]
 async fn main() -> io::Result<()> {
     main0().await
@@ -49,7 +48,7 @@ pub async fn main0() -> io::Result<()> {
         connect,
         port,
     } = Args::parse();
-    env_logger::Builder::from_env(Env::default().default_filter_or("debug")).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let mut addrs = Vec::new();
     if let Some(peers) = peer {
         for addr in peers {
@@ -69,6 +68,7 @@ pub async fn main0() -> io::Result<()> {
 
     let ip_stack_config = IpStackConfig::default();
     let ip_stack = rustp2p_transport::transport(p2p_config, ip_stack_config).await?;
+    // Nodes can communicate using network protocols
     if let Some(connect) = connect {
         log::info!("***** connect stream {connect}");
         let mut tcp_stream = tcp_ip::tcp::TcpStream::connect(
@@ -81,7 +81,9 @@ pub async fn main0() -> io::Result<()> {
         let mut string = String::new();
         loop {
             string.clear();
-            print!("Please enter the char:");
+            println!(
+                "========================== Please enter the char: =========================="
+            );
             reader.read_line(&mut string).await?;
             println!("input: {}", string);
             tcp_stream.write_all(string.as_bytes()).await?;
