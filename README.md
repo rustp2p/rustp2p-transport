@@ -7,7 +7,7 @@ Node-A(192.168.0.2):
 
 ```rust
 use rustp2p::config::{PipeConfig, TcpPipeConfig, UdpPipeConfig};
-use tcp_ip::ip_stack::IpStackConfig;
+use tcp_ip::IpStackConfig;
 use tokio::io::AsyncReadExt;
 
 #[tokio::main]
@@ -22,9 +22,7 @@ async fn main() -> std::io::Result<()> {
         .set_node_id(ip.into());
     let ip_stack_config = IpStackConfig::default();
     let ip_stack = rustp2p_transport::transport(p2p_config, ip_stack_config).await?;
-    let mut tcp_listener =
-        tcp_ip::tcp::TcpListener::bind(ip_stack.clone(), "0.0.0.0:8080".parse().unwrap())
-            .await?;
+    let mut tcp_listener = tcp_ip::tcp::TcpListener::bind(ip_stack.clone(), "0.0.0.0:8080").await?;
     println!("***** tcp_listener accept *****");
     loop {
         let (mut stream, addr) = tcp_listener.accept().await?;
@@ -51,7 +49,7 @@ Node-B:
 
 ```rust
 use rustp2p::config::{PipeConfig, TcpPipeConfig, UdpPipeConfig};
-use tcp_ip::ip_stack::IpStackConfig;
+use tcp_ip::IpStackConfig;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
@@ -67,11 +65,8 @@ async fn main() -> std::io::Result<()> {
         .set_node_id(node_b.into());
     let ip_stack_config = IpStackConfig::default();
     let ip_stack = rustp2p_transport::transport(p2p_config, ip_stack_config).await?;
-    let tcp_stream = tcp_ip::tcp::TcpStream::connect(
-        ip_stack,
-        format!("{node_b}:8081").parse().unwrap(),
-        format!("{node_a}:8080").parse().unwrap(),
-    )
+    let tcp_stream = tcp_ip::tcp::TcpStream::bind(ip_stack, format!("{node_b}:8081"))?
+        .connect(format!("{node_a}:8080"))
         .await?;
     // Use `tcp_stream` to communicate with Node A.
     Ok(())

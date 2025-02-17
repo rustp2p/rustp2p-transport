@@ -6,7 +6,7 @@ use rustp2p::pipe::PeerNodeAddress;
 use rustp2p::protocol::node_id::GroupCode;
 use std::io;
 use std::net::Ipv4Addr;
-use tcp_ip::ip_stack::IpStackConfig;
+use tcp_ip::IpStackConfig;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 
 #[derive(Parser, Debug)]
@@ -71,12 +71,9 @@ pub async fn main0() -> io::Result<()> {
     // Nodes can communicate using network protocols
     if let Some(connect) = connect {
         log::info!("***** connect stream {connect}");
-        let mut tcp_stream = tcp_ip::tcp::TcpStream::connect(
-            ip_stack,
-            format!("{ip}:12345").parse().unwrap(),
-            format!("{connect}:12345").parse().unwrap(),
-        )
-        .await?;
+        let mut tcp_stream = tcp_ip::tcp::TcpStream::bind(ip_stack, format!("{ip}:12345"))?
+            .connect(format!("{connect}:12345"))
+            .await?;
         let mut reader = BufReader::new(tokio::io::stdin());
         let mut string = String::new();
         loop {
@@ -90,8 +87,7 @@ pub async fn main0() -> io::Result<()> {
         }
     } else {
         let mut tcp_listener =
-            tcp_ip::tcp::TcpListener::bind(ip_stack.clone(), "0.0.0.0:12345".parse().unwrap())
-                .await?;
+            tcp_ip::tcp::TcpListener::bind(ip_stack.clone(), "0.0.0.0:12345").await?;
         log::info!("***** tcp_listener accept");
         loop {
             let (mut stream, addr) = tcp_listener.accept().await?;

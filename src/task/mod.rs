@@ -2,7 +2,7 @@ use std::io;
 
 use bytes::BytesMut;
 use rustp2p::pipe::{Pipe, PipeLine, PipeWriter, RecvError};
-use tcp_ip::ip_stack::{IpStackRecv, IpStackSend};
+use tcp_ip::{IpStackRecv, IpStackSend};
 
 pub async fn start(
     mtu: u16,
