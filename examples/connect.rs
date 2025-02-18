@@ -4,6 +4,7 @@ use rustp2p::pipe::PeerNodeAddress;
 use rustp2p_transport::TransportBuilder;
 use std::io;
 use std::net::Ipv4Addr;
+use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 
 #[derive(Parser, Debug)]
@@ -82,7 +83,14 @@ pub async fn main0() -> io::Result<()> {
             tokio::spawn(async move {
                 let mut buf = vec![0; 65536];
                 loop {
-                    match stream.read(&mut buf).await {
+                    let rs = match tokio::time::timeout(Duration::from_secs(5), stream.read(&mut buf)).await {
+                        Ok(rs) => rs,
+                        Err(_) => {
+                            log::info!("timeout {addr}");
+                            return;
+                        }
+                    };
+                    match rs {
                         Ok(n) => {
                             log::info!("{addr}: {:?}", String::from_utf8(buf[..n].to_vec()));
                         }
