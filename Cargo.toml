@@ -2,6 +2,10 @@
 name = "rustp2p-transport"
 version = "0.1.0"
 edition = "2021"
+license = "Apache-2.0"
+readme = "README.md"
+description = "A Rust library for building a decentralized logical network, allowing nodes to communicate using IP, TCP, UDP, and ICMP protocols."
+repository = "https://github.com/rustp2p/rustp2p-transport"
 
 [dependencies]
 log = "0.4.25"
@@ -14,5 +18,4 @@ futures-util = "0.3.31"
 
 [dev-dependencies]
 clap = { version = "4.5", features = ["derive"] }
-log = "0.4"
 env_logger = "0.11"
