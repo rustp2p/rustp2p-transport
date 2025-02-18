@@ -1,12 +1,9 @@
 use clap::Parser;
 use env_logger::Env;
-use rustp2p::cipher::Algorithm;
-use rustp2p::config::{PipeConfig, TcpPipeConfig, UdpPipeConfig};
 use rustp2p::pipe::PeerNodeAddress;
-use rustp2p::protocol::node_id::GroupCode;
+use rustp2p_transport::TransportBuilder;
 use std::io;
 use std::net::Ipv4Addr;
-use tcp_ip::IpStackConfig;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 
 #[derive(Parser, Debug)]
@@ -20,9 +17,6 @@ struct Args {
     /// example: --ip 10.26.0.2
     #[arg(short, long)]
     ip: Ipv4Addr,
-    /// Nodes with the same group_code can form a network
-    #[arg(short, long)]
-    group_code: String,
     /// Connect node IP
     /// example: --connect 10.26.0.3
     #[arg(short, long)]
@@ -32,8 +26,8 @@ struct Args {
     port: u16,
 }
 
-/// Node A: ./connect --ip 10.26.0.2 -g 123
-/// Node B: ./connect --ip 10.26.0.3 -g 123 -c 10.26.0.2 --peer tcp://127.0.0.1:23333
+/// Node A: ./connect --ip 10.26.0.2 -P 23333
+/// Node B: ./connect --ip 10.26.0.3 -P 23334 -c 10.26.0.2 --peer tcp://127.0.0.1:23333
 /// After a successful connection, entering content on Node B will be displayed on Node A.
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -44,30 +38,23 @@ pub async fn main0() -> io::Result<()> {
     let Args {
         peer,
         ip,
-        group_code,
         connect,
         port,
     } = Args::parse();
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("debug")).init();
     let mut addrs = Vec::new();
     if let Some(peers) = peer {
         for addr in peers {
             addrs.push(addr.parse::<PeerNodeAddress>().expect("--peer"))
         }
     }
+    let ip_stack = TransportBuilder::default()
+        .ip(ip)
+        .port(port)
+        .peers(addrs)
+        .build()
+        .await?;
 
-    let udp_config = UdpPipeConfig::default().set_udp_ports(vec![port]);
-    let tcp_config = TcpPipeConfig::default().set_tcp_port(port);
-    let p2p_config = PipeConfig::empty()
-        .set_udp_pipe_config(udp_config)
-        .set_tcp_pipe_config(tcp_config)
-        .set_direct_addrs(addrs)
-        .set_group_code(string_to_group_code(&group_code))
-        .set_encryption(Algorithm::AesGcm("password".to_string()))
-        .set_node_id(ip.into());
-
-    let ip_stack_config = IpStackConfig::default();
-    let ip_stack = rustp2p_transport::transport(p2p_config, ip_stack_config).await?;
     // Nodes can communicate using network protocols
     if let Some(connect) = connect {
         log::info!("***** connect stream {connect}");
@@ -108,11 +95,4 @@ pub async fn main0() -> io::Result<()> {
             });
         }
     }
-}
-fn string_to_group_code(input: &str) -> GroupCode {
-    let mut array = [0u8; 16];
-    let bytes = input.as_bytes();
-    let len = bytes.len().min(16);
-    array[..len].copy_from_slice(&bytes[..len]);
-    array.into()
 }

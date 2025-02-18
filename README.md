@@ -1,3 +1,11 @@
+# rustp2p-transport
+
+`rustp2p-transport` is built upon `rustp2p` and `tcp_ip` to create a decentralized communication platform.
+It organizes network nodes into a logical local area network (LAN), 
+allowing users to communicate through TCP/UDP APIs similar to those in the standard library, 
+and supports interconnecting nodes using protocols such as IP, TCP, UDP, and ICMP.
+
+
 Getting Started
 ------
 The nodes in the `rustp2p-transport` are decentralized, and all nodes are equal.
@@ -6,22 +14,18 @@ This demonstrates a simple implementation where Node B accesses Node A.
 Node-A(192.168.0.2):
 
 ```rust
-use rustp2p::config::{PipeConfig, TcpPipeConfig, UdpPipeConfig};
-use tcp_ip::IpStackConfig;
 use tokio::io::AsyncReadExt;
+use rustp2p_transport::TransportBuilder;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let ip = std::net::Ipv4Addr::new(10, 0, 0, 2);
     let port = 12345;
-    let udp_config = UdpPipeConfig::default().set_udp_ports(vec![port]);
-    let tcp_config = TcpPipeConfig::default().set_tcp_port(port);
-    let p2p_config = PipeConfig::empty()
-        .set_udp_pipe_config(udp_config)
-        .set_tcp_pipe_config(tcp_config)
-        .set_node_id(ip.into());
-    let ip_stack_config = IpStackConfig::default();
-    let ip_stack = rustp2p_transport::transport(p2p_config, ip_stack_config).await?;
+    let ip_stack = TransportBuilder::default()
+        .ip(ip)
+        .port(port)
+        .build()
+        .await?;
     let mut tcp_listener = tcp_ip::tcp::TcpListener::bind(ip_stack.clone(), "0.0.0.0:8080").await?;
     println!("***** tcp_listener accept *****");
     loop {
@@ -48,23 +52,19 @@ async fn main() -> std::io::Result<()> {
 Node-B:
 
 ```rust
-use rustp2p::config::{PipeConfig, TcpPipeConfig, UdpPipeConfig};
-use tcp_ip::IpStackConfig;
+use rustp2p_transport::TransportBuilder;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let node_a = std::net::Ipv4Addr::new(10, 0, 0, 2);
     let node_b = std::net::Ipv4Addr::new(10, 0, 0, 3);
     let port = 12345;
-    let udp_config = UdpPipeConfig::default().set_udp_ports(vec![port]);
-    let tcp_config = TcpPipeConfig::default().set_tcp_port(port);
-    let p2p_config = PipeConfig::empty()
-        .set_udp_pipe_config(udp_config)
-        .set_tcp_pipe_config(tcp_config)
-        .set_direct_addrs(vec!["tcp://192.168.0.2:12345".parse().unwrap()])
-        .set_node_id(node_b.into());
-    let ip_stack_config = IpStackConfig::default();
-    let ip_stack = rustp2p_transport::transport(p2p_config, ip_stack_config).await?;
+    let ip_stack = TransportBuilder::default()
+        .ip(node_b)
+        .port(port)
+        .peers(vec!["tcp://192.168.0.2:12345".parse().unwrap()])
+        .build()
+        .await?;
     let tcp_stream = tcp_ip::tcp::TcpStream::bind(ip_stack, format!("{node_b}:8081"))?
         .connect(format!("{node_a}:8080"))
         .await?;
