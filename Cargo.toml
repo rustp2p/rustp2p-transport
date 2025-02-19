@@ -16,6 +16,14 @@ bytes = "1.10.0"
 pnet_packet = "0.35"
 futures-util = "0.3.31"
 
+[features]
+default = []
+global = ["tcp_ip/global-ip-stack"]
+
 [dev-dependencies]
 clap = { version = "4.5", features = ["derive"] }
 env_logger = "0.11"
+
+[[example]]
+name = "connect"
+required-features = ["global"]

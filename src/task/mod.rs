@@ -1,7 +1,7 @@
-use std::io;
-
 use bytes::BytesMut;
 use rustp2p::pipe::{Pipe, PipeLine, PipeWriter, RecvError};
+use std::io;
+use std::net::Ipv4Addr;
 use tcp_ip::{IpStackRecv, IpStackSend};
 
 pub async fn start(
@@ -10,9 +10,6 @@ pub async fn start(
     ip_stack_send: IpStackSend,
     ip_stack_recv: IpStackRecv,
 ) -> io::Result<()> {
-    if pipe.writer().pipe_context().load_id().is_none() {
-        return Err(io::Error::new(io::ErrorKind::Other, "Node ID must be set"));
-    };
     let pipe_writer = pipe.writer().clone();
     tokio::spawn(async move {
         if let Err(e) = pipe_accept_handle(pipe, ip_stack_send).await {
@@ -42,8 +39,18 @@ async fn ip_stack_recv_handle(
         for index in 0..num {
             let buf = &bufs[index];
             let len = sizes[index];
-            let packet = pnet_packet::ipv4::Ipv4Packet::new(&buf[..len]).unwrap();
-            let dst = packet.get_destination();
+            let dst = if buf[0] >> 4 != 4 {
+                if let Some(ipv6_packet) = pnet_packet::ipv6::Ipv6Packet::new(&buf[..len]) {
+                    let last: [u8; 4] = ipv6_packet.get_destination().octets()[12..]
+                        .try_into()
+                        .unwrap();
+                    Ipv4Addr::from(last)
+                } else {
+                    continue;
+                }
+            } else {
+                Ipv4Addr::new(buf[16], buf[17], buf[18], buf[19])
+            };
             let mut send_packet = pipe_writer.allocate_send_packet();
             send_packet.set_payload(buf);
             if let Err(e) = pipe_writer.send_packet_to(send_packet, &dst.into()).await {

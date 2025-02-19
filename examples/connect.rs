@@ -49,19 +49,22 @@ pub async fn main0() -> io::Result<()> {
             addrs.push(addr.parse::<PeerNodeAddress>().expect("--peer"))
         }
     }
-    let ip_stack = TransportBuilder::default()
+    TransportBuilder::default()
         .ip(ip)
         .port(port)
         .peers(addrs)
-        .build()
+        .build_context()
         .await?;
 
     // Nodes can communicate using network protocols
     if let Some(connect) = connect {
         log::info!("***** connect stream {connect}");
-        let mut tcp_stream = tcp_ip::tcp::TcpStream::bind(ip_stack, format!("{ip}:12345"))?
-            .connect(format!("{connect}:12345"))
-            .await?;
+        let mut tcp_stream = tcp_ip::tcp::TcpStream::connect(format!("{connect}:12345")).await?;
+        println!(
+            "***** accept stream {:?}->{:?}",
+            tcp_stream.local_addr()?,
+            tcp_stream.peer_addr()?
+        );
         let mut reader = BufReader::new(tokio::io::stdin());
         let mut string = String::new();
         loop {
@@ -74,8 +77,7 @@ pub async fn main0() -> io::Result<()> {
             tcp_stream.write_all(string.as_bytes()).await?;
         }
     } else {
-        let mut tcp_listener =
-            tcp_ip::tcp::TcpListener::bind(ip_stack.clone(), "0.0.0.0:12345").await?;
+        let mut tcp_listener = tcp_ip::tcp::TcpListener::bind("0.0.0.0:12345").await?;
         log::info!("***** tcp_listener accept");
         loop {
             let (mut stream, addr) = tcp_listener.accept().await?;
@@ -83,13 +85,16 @@ pub async fn main0() -> io::Result<()> {
             tokio::spawn(async move {
                 let mut buf = vec![0; 65536];
                 loop {
-                    let rs = match tokio::time::timeout(Duration::from_secs(5), stream.read(&mut buf)).await {
-                        Ok(rs) => rs,
-                        Err(_) => {
-                            log::info!("timeout {addr}");
-                            return;
-                        }
-                    };
+                    let rs =
+                        match tokio::time::timeout(Duration::from_secs(5), stream.read(&mut buf))
+                            .await
+                        {
+                            Ok(rs) => rs,
+                            Err(_) => {
+                                log::info!("timeout {addr}");
+                                return;
+                            }
+                        };
                     match rs {
                         Ok(n) => {
                             log::info!("{addr}: {:?}", String::from_utf8(buf[..n].to_vec()));

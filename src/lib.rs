@@ -36,7 +36,7 @@ impl TransportBuilder {
         self.peers = Some(peers);
         self
     }
-    pub async fn build(self) -> io::Result<tcp_ip::IpStack> {
+    fn config(self) -> io::Result<(rustp2p::config::PipeConfig, tcp_ip::IpStackConfig)> {
         let Some(ip) = self.ip else {
             return Err(io::Error::new(io::ErrorKind::Other, "IP must be set"));
         };
@@ -58,18 +58,60 @@ impl TransportBuilder {
         }
 
         let ip_stack_config = tcp_ip::IpStackConfig::default();
+        Ok((p2p_config, ip_stack_config))
+    }
+    #[cfg(feature = "global")]
+    pub async fn build_context(self) -> io::Result<()> {
+        let (p2p_config, ip_stack_config) = self.config()?;
+        transport_from_config(p2p_config, ip_stack_config).await
+    }
+    #[cfg(not(feature = "global"))]
+    pub async fn build(self) -> io::Result<tcp_ip::IpStack> {
+        let (p2p_config, ip_stack_config) = self.config()?;
         transport_from_config(p2p_config, ip_stack_config).await
     }
 }
-
 /// Build through complete config
+#[cfg(feature = "global")]
 pub async fn transport_from_config(
+    rustp2p_config: rustp2p::config::PipeConfig,
+    tcp_ip_config: tcp_ip::IpStackConfig,
+) -> io::Result<()> {
+    transport_from_config0(rustp2p_config, tcp_ip_config)
+        .await
+        .map(|_| ())
+}
+/// Build through complete config
+#[cfg(not(feature = "global"))]
+pub async fn transport_from_config(
+    rustp2p_config: rustp2p::config::PipeConfig,
+    tcp_ip_config: tcp_ip::IpStackConfig,
+) -> io::Result<tcp_ip::IpStack> {
+    transport_from_config0(rustp2p_config, tcp_ip_config).await
+}
+async fn transport_from_config0(
     rustp2p_config: rustp2p::config::PipeConfig,
     tcp_ip_config: tcp_ip::IpStackConfig,
 ) -> io::Result<tcp_ip::IpStack> {
     let mtu = tcp_ip_config.mtu;
     let pipe = rustp2p::pipe::Pipe::new(rustp2p_config).await?;
+    let Some(node_id) = pipe.writer().pipe_context().load_id() else {
+        return Err(io::Error::new(io::ErrorKind::Other, "Node ID must be set"));
+    };
+    #[cfg(not(feature = "global"))]
     let (ip_stack, ip_stack_send, ip_stack_recv) = tcp_ip::ip_stack(tcp_ip_config)?;
+    #[cfg(feature = "global")]
+    let (ip_stack_send, ip_stack_recv) = tcp_ip::ip_stack(tcp_ip_config)?;
+    #[cfg(feature = "global")]
+    let ip_stack = tcp_ip::IpStack::get()?;
+    ip_stack.routes().set_default_v4(node_id.into());
+    let mut v6: [u8; 16] = [
+        0xfd, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xab, 0xcd, 0xef, 0x12, 0x34, 0x56, 0, 0, 0, 0,
+    ];
+    v6[12..].copy_from_slice(node_id.as_ref());
+    ip_stack
+        .routes()
+        .set_default_v6(std::net::Ipv6Addr::from(v6));
     task::start(mtu, pipe, ip_stack_send, ip_stack_recv).await?;
     Ok(ip_stack)
 }
