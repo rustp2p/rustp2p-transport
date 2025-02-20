@@ -1,9 +1,8 @@
 # rustp2p-transport
 
-`rustp2p-transport` is built upon `rustp2p` and `tcp_ip` to create a decentralized communication platform.
-It organizes network nodes into a logical local area network (LAN), 
-allowing users to communicate through TCP/UDP APIs similar to those in the standard library, 
-and supports interconnecting nodes using protocols such as IP, TCP, UDP, and ICMP.
+`rustp2p-transport` creates a decentralized communication platform.
+It organizes network nodes into a virtual LAN,
+allowing users to communicate through TCP/UDP APIs similar to those in the standard library.
 
 
 Getting Started
@@ -28,8 +27,8 @@ async fn main() -> std::io::Result<()> {
     let ip = std::net::Ipv4Addr::new(10, 0, 0, 2);
     let port = 12345;
     TransportBuilder::default()
-        .ip(ip)
-        .port(port)
+        .endpoint(ip)
+        .listen_port(port)
         .build_context()
         .await?;
     let mut tcp_listener = tcp_ip::tcp::TcpListener::bind("0.0.0.0:8080").await?;
@@ -66,8 +65,8 @@ async fn main() -> std::io::Result<()> {
     let node_b = std::net::Ipv4Addr::new(10, 0, 0, 3);
     let port = 12345;
     TransportBuilder::default()
-        .ip(node_b)
-        .port(port)
+        .endpoint(node_b)
+        .listen_port(port)
         .peers(vec!["tcp://192.168.0.2:12345".parse().unwrap()])
         .build_context()
         .await?;

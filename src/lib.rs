@@ -12,9 +12,9 @@ pub use tcp_ip;
 #[derive(Clone, Debug, Default)]
 pub struct TransportBuilder {
     group_code: Option<String>,
-    ip: Option<Ipv4Addr>,
+    endpoint: Option<Ipv4Addr>,
     load_balance: Option<LoadBalance>,
-    port: Option<u16>,
+    listen_port: Option<u16>,
     peers: Option<Vec<PeerNodeAddress>>,
 }
 impl TransportBuilder {
@@ -24,13 +24,13 @@ impl TransportBuilder {
         self
     }
     /// Sets the IP address of the node (must be set).
-    pub fn ip(mut self, ip: Ipv4Addr) -> Self {
-        self.ip = Some(ip);
+    pub fn endpoint(mut self, endpoint: Ipv4Addr) -> Self {
+        self.endpoint = Some(endpoint);
         self
     }
     /// Sets the port for the node to listen on (optional).
-    pub fn port(mut self, port: u16) -> Self {
-        self.port = Some(port);
+    pub fn listen_port(mut self, listen_port: u16) -> Self {
+        self.listen_port = Some(listen_port);
         self
     }
     /// Sets the list of directly connected peer nodes (optional).
@@ -43,12 +43,12 @@ impl TransportBuilder {
         self
     }
     fn config(self) -> io::Result<(rustp2p::config::PipeConfig, tcp_ip::IpStackConfig)> {
-        let Some(ip) = self.ip else {
+        let Some(ip) = self.endpoint else {
             return Err(io::Error::new(io::ErrorKind::Other, "IP must be set"));
         };
         let mut udp_config = rustp2p::config::UdpPipeConfig::default();
         let mut tcp_config = rustp2p::config::TcpPipeConfig::default();
-        if let Some(port) = self.port {
+        if let Some(port) = self.listen_port {
             udp_config = udp_config.set_simple_udp_port(port);
             tcp_config = tcp_config.set_tcp_port(port);
         }

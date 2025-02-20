@@ -50,8 +50,8 @@ pub async fn main0() -> io::Result<()> {
         }
     }
     TransportBuilder::default()
-        .ip(ip)
-        .port(port)
+        .endpoint(ip)
+        .listen_port(port)
         .peers(addrs)
         .build_context()
         .await?;
