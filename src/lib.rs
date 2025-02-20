@@ -1,6 +1,7 @@
 mod task;
 
 pub use rustp2p;
+use rustp2p::config::LoadBalance;
 use rustp2p::pipe::PeerNodeAddress;
 use rustp2p::protocol::node_id::GroupCode;
 use std::io;
@@ -12,6 +13,7 @@ pub use tcp_ip;
 pub struct TransportBuilder {
     group_code: Option<String>,
     ip: Option<Ipv4Addr>,
+    load_balance: Option<LoadBalance>,
     port: Option<u16>,
     peers: Option<Vec<PeerNodeAddress>>,
 }
@@ -36,6 +38,10 @@ impl TransportBuilder {
         self.peers = Some(peers);
         self
     }
+    pub fn load_balance(mut self, load_balance: LoadBalance) -> Self {
+        self.load_balance = Some(load_balance);
+        self
+    }
     fn config(self) -> io::Result<(rustp2p::config::PipeConfig, tcp_ip::IpStackConfig)> {
         let Some(ip) = self.ip else {
             return Err(io::Error::new(io::ErrorKind::Other, "IP must be set"));
@@ -47,6 +53,7 @@ impl TransportBuilder {
             tcp_config = tcp_config.set_tcp_port(port);
         }
         let mut p2p_config = rustp2p::config::PipeConfig::empty()
+            .set_load_balance(self.load_balance.unwrap_or(LoadBalance::RoundRobin))
             .set_udp_pipe_config(udp_config)
             .set_tcp_pipe_config(tcp_config)
             .set_node_id(ip.into());
