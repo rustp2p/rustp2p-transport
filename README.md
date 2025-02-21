@@ -1,3 +1,6 @@
+[![Crates.io](https://img.shields.io/crates/v/rustp2p-transport.svg)](https://crates.io/crates/rustp2p-transport)
+[![docs](https://docs.rs/rustp2p-transport/badge.svg)](https://docs.rs/rustp2p-transport/latest/rustp2p-transport/)
+
 # rustp2p-transport
 
 `rustp2p-transport` creates a decentralized communication platform.
