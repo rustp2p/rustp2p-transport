@@ -31,11 +31,7 @@ struct Args {
 /// Node B: ./connect --ip 10.26.0.3 -P 23334 -c 10.26.0.2 --peer tcp://127.0.0.1:23333
 /// After a successful connection, entering content on Node B will be displayed on Node A.
 #[tokio::main]
-async fn main() -> io::Result<()> {
-    main0().await
-}
-
-pub async fn main0() -> io::Result<()> {
+pub async fn main() -> io::Result<()> {
     let Args {
         peer,
         ip,
