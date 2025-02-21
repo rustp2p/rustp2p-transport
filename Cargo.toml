@@ -10,8 +10,8 @@ repository = "https://github.com/rustp2p/rustp2p-transport"
 [dependencies]
 log = "0.4.25"
 tokio = { version = "1.43", features = ["macros", "rt-multi-thread"] }
-rustp2p = { git = "https://github.com/rustp2p/rustp2p", features = ["aes-gcm", "chacha20-poly1305"] }
-tcp_ip = { git = "https://github.com/rustp2p/tcp_ip" }
+rustp2p = { version = "0.2.0", features = ["aes-gcm", "chacha20-poly1305"] }
+tcp_ip = { version = "0.1.8" }
 bytes = "1.10.0"
 pnet_packet = "0.35"
 futures-util = "0.3.31"
