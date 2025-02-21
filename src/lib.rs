@@ -1,6 +1,7 @@
 mod task;
 
 pub use rustp2p;
+use rustp2p::cipher::Algorithm;
 use rustp2p::config::LoadBalance;
 use rustp2p::pipe::PeerNodeAddress;
 use rustp2p::protocol::node_id::GroupCode;
@@ -12,6 +13,7 @@ pub use tcp_ip;
 #[derive(Clone, Debug, Default)]
 pub struct TransportBuilder {
     group_code: Option<String>,
+    encryption: Option<Algorithm>,
     endpoint: Option<Ipv4Addr>,
     load_balance: Option<LoadBalance>,
     listen_port: Option<u16>,
@@ -21,6 +23,11 @@ impl TransportBuilder {
     /// Sets the group code for network isolation.
     pub fn group_code(mut self, group_code: String) -> Self {
         self.group_code = Some(group_code);
+        self
+    }
+    /// Enable encryption
+    pub fn encryption(mut self, encryption: Algorithm) -> Self {
+        self.encryption = Some(encryption);
         self
     }
     /// Sets the IP address of the node (must be set).
@@ -57,6 +64,9 @@ impl TransportBuilder {
             .set_udp_pipe_config(udp_config)
             .set_tcp_pipe_config(tcp_config)
             .set_node_id(ip.into());
+        if let Some(encryption) = self.encryption {
+            p2p_config = p2p_config.set_encryption(encryption);
+        }
         if let Some(peers) = self.peers {
             p2p_config = p2p_config.set_direct_addrs(peers);
         }
